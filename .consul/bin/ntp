@@ -1,5 +1,5 @@
 #!/bin/bash
-N=`ps aux | grep ntp | grep -v grep | wc -l`
+N=`ps aux | grep /usr/sbin/ntpd | grep -v grep | wc -l`
 if [ $N = 0 ]; then
     exit 1
 fi
