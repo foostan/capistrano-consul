@@ -4,7 +4,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 num_server_instances = 1
-num_client_instances = 2
+num_client_instances = 1
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "ubuntu/trusty64"
@@ -20,7 +20,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       server.vm.provision "shell" do |s|
         s.args   = [node_name, bootstrap, join, ip]
         s.inline = <<-EOF
-          sudo apt-get -y update
+          #sudo apt-get -y update
+
+          # install services
+          sudo apt-get -y install apache2 ntp
 
           # install consul
           if [ ! -e /usr/bin/consul ]; then
@@ -29,7 +32,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
           # start consul
           consul leave
-          nohup consul agent -node=$1 -server $2 $3 -client $4 -config-dir=/vagrant/.consul/server/config > /tmp/nohup-$(date +"%Y%m%d%H%M%S").out 2>&1 < /dev/null &
+          nohup consul agent -node=$1 -server $2 $3 -advertise=$4 -client=$4 -config-dir=/vagrant/.consul/server/config > /tmp/nohup-$(date +"%Y%m%d%H%M%S").out 2>&1 < /dev/null &
         EOF
       end
     end
@@ -44,7 +47,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       client.vm.provision "shell" do |s|
         s.args   = [node_name, ip]
         s.inline = <<-EOF
-          sudo apt-get -y update
+          #sudo apt-get -y update
+
+          # install services
+          sudo apt-get -y install apache2 ntp
 
           # install consul
           if [ ! -e /usr/bin/consul ]; then
@@ -53,7 +59,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
           # start consul
           consul leave
-          nohup consul agent -node=$1 -join=192.168.33.101 -client $2 -config-dir=/vagrant/.consul/client/config > /tmp/nohup-$(date +"%Y%m%d%H%M%S").out 2>&1 < /dev/null &
+          nohup consul agent -node=$1 -join=192.168.33.101 -advertise=$2 -client=$2 -config-dir=/vagrant/.consul/client/config > /tmp/nohup-$(date +"%Y%m%d%H%M%S").out 2>&1 < /dev/null &
         EOF
       end
     end
