@@ -1,0 +1,20 @@
+{
+    "service": [
+        {
+            "name": "apache2",
+            "tags": [],
+            "check": {
+                "script": "/vagrant/.consul/bin/apache2",
+                "interval": "10s"
+            }
+        },
+        {
+            "name": "ntp",
+            "tags": [],
+            "check": {
+                "script": "/vagrant/.consul/bin/ntp",
+                "interval": "10s"
+            }
+        }
+    ]
+}

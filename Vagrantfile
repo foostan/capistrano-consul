@@ -3,13 +3,60 @@
 
 VAGRANTFILE_API_VERSION = "2"
 
+num_server_instances = 1
+num_client_instances = 2
+
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "ubuntu/trusty64"
-  config.vm.network :private_network, ip: "192.168.33.10"
 
-  config.vm.provision "shell", inline: <<-EOS
-    sudo apt-get -y update
-    sudo apt-get install -y git apache2
-    sudo chown vagrant:vagrant /var/www -R
-  EOS
+  (1..num_server_instances).each do |i|
+    node_name = "server-%02d" % i
+    bootstrap = i == 1 ? "-bootstrap" : ""
+    join = i != 1 ? "-join=192.168.33.101" : ""
+
+    config.vm.define vm_name = node_name do |server|
+      ip = "192.168.33.#{i+100}"
+      server.vm.network :private_network, ip: ip
+      server.vm.provision "shell" do |s|
+        s.args   = [node_name, bootstrap, join, ip]
+        s.inline = <<-EOF
+          sudo apt-get -y update
+
+          # install consul
+          if [ ! -e /usr/bin/consul ]; then
+            cp /vagrant/.consul/bin/consul /usr/bin
+          fi
+
+          # start consul
+          consul leave
+          nohup consul agent -node=$1 -server $2 $3 -client $4 -config-dir=/vagrant/.consul/server/config > /tmp/nohup-$(date +"%Y%m%d%H%M%S").out 2>&1 < /dev/null &
+        EOF
+      end
+    end
+  end
+
+  (1..num_client_instances).each do |i|
+    node_name = "client-%02d" % i
+
+    config.vm.define vm_name = node_name do |client|
+      ip = "192.168.33.#{i+200}"
+      client.vm.network :private_network, ip: ip
+      client.vm.provision "shell" do |s|
+        s.args   = [node_name, ip]
+        s.inline = <<-EOF
+          sudo apt-get -y update
+
+          # install consul
+          if [ ! -e /usr/bin/consul ]; then
+            cp /vagrant/.consul/bin/consul /usr/bin
+          fi
+
+          # start consul
+          consul leave
+          nohup consul agent -node=$1 -join=192.168.33.101 -client $2 -config-dir=/vagrant/.consul/client/config > /tmp/nohup-$(date +"%Y%m%d%H%M%S").out 2>&1 < /dev/null &
+        EOF
+      end
+    end
+  end
+
 end

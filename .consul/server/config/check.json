@@ -1,0 +1,10 @@
+{
+    "check": [
+        {
+            "id": "loadavg",
+            "name": "Check load average",
+            "script": "/vagrant/.consul/bin/loadavg",
+            "interval": "10s"
+        }
+    ]
+}
